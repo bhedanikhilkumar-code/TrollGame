@@ -3,8 +3,6 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StyleSheet, Text, View, TouchableOpacity, TouchableWithoutFeedback, Alert, Dimensions, Animated, Easing, Image } from 'react-native';
-import { Audio } from 'expo-av';
-import * as Haptics from 'expo-haptics';
 
 const Stack = createNativeStackNavigator();
 const { width, height } = Dimensions.get('window');
@@ -13,33 +11,6 @@ const GameContext = createContext();
 
 function useGame() {
   return useContext(GameContext);
-}
-
-function SoundManager() {
-  const soundRef = useRef(null);
-  
-  const playSound = async (type) => {
-    try {
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-      }
-      
-      const sounds = {
-        click: require('./assets/click.mp3'),
-        win: require('./assets/win.mp3'),
-        lose: require('./assets/lose.mp3'),
-        secret: require('./assets/secret.mp3'),
-      };
-      
-      const { sound } = await Audio.Sound.createAsync(sounds[type] || sounds.click);
-      soundRef.current = sound;
-      await sound.playAsync();
-    } catch (e) {
-      console.log('Sound error:', e);
-    }
-  };
-
-  return { playSound };
 }
 
 function ParticleBackground() {
@@ -165,7 +136,7 @@ function MainMenuScreen({ navigation }) {
   }, []);
 
   const handleStart = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
     navigation.navigate('LevelSelect');
   };
 
@@ -277,14 +248,14 @@ function Level1Screen({ navigation }) {
 
   const handleFakeButton = async () => {
     setShake(true);
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
     setTimeout(() => {
       navigation.replace('GameOver');
     }, 500);
   };
 
   const handleSecretDot = async () => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     addScore(100);
     Alert.alert(
       '🎉 Wait, how did you find that?!',
@@ -334,14 +305,14 @@ function Level2Screen({ navigation }) {
 
   const handleGreenBox = async () => {
     setShake(true);
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
     setTimeout(() => {
       navigation.replace('GameOver');
     }, 500);
   };
 
   const handleRedBox = async () => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     addScore(100);
     Alert.alert(
       'Rule Breaker!',
@@ -398,7 +369,7 @@ function Level3Screen({ navigation }) {
   }, []);
 
   const handleCatch = async () => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     addScore(150);
     Alert.alert(
       '🎯 Gotcha!',
@@ -481,7 +452,7 @@ function Level4Screen({ navigation }) {
   const handleTap = async (index) => {
     if (index === 1) {
       setShowCorrect(true);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  
       addScore(200);
       Alert.alert(
         '🧠 Smart Cookie!',
@@ -495,7 +466,7 @@ function Level4Screen({ navigation }) {
       );
     } else {
       setShake(true);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+  
       setTimeout(() => setShake(false), 500);
     }
   };
@@ -552,7 +523,7 @@ function Level5Screen({ navigation }) {
 
   const handleWin = async () => {
     if (!canClick) return;
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     addScore(300);
     Alert.alert(
       '🏆 ULTIMATE TROLL MASTER!',
