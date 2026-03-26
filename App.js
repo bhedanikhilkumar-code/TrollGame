@@ -34,6 +34,38 @@ const DAILY_CHALLENGES = [
   { title: 'Combo Master', desc: 'Get 5x combo', type: 'combo' },
 ];
 
+const POWERUPS = [
+  { id: 'shield', name: '🛡️ Shield', desc: 'One free mistake', cost: 100 },
+  { id: 'time', name: '⏰ +10s', desc: 'Add 10 seconds', cost: 75 },
+  { id: 'double', name: '2️⃣ 2x Points', desc: 'Double score', cost: 150 },
+  { id: 'skip', name: '⏭️ Skip Level', desc: 'Skip current level', cost: 200 },
+];
+
+const SKINS = [
+  { id: 'default', name: '😈 Default', unlockAt: 0, emoji: '😈' },
+  { id: 'clown', name: '🤡 Clown', unlockAt: 500, emoji: '🤡' },
+  { id: 'ghost', name: '👻 Ghost', unlockAt: 1000, emoji: '👻' },
+  { id: 'alien', name: '👽 Alien', unlockAt: 1500, emoji: '👽' },
+  { id: 'robot', name: '🤖 Robot', unlockAt: 2000, emoji: '🤖' },
+  { id: 'dragon', name: '🐉 Dragon', unlockAt: 3000, emoji: '🐉' },
+  { id: 'king', name: '👑 King', unlockAt: 5000, emoji: '👑' },
+  { id: 'legend', name: '🦄 Legend', unlockAt: 10000, emoji: '🦄' },
+];
+
+const BOSSES = [
+  { name: '😈 Mini Troll', hp: 3, emoji: '😈' },
+  { name: '👹 Cave Troll', hp: 5, emoji: '👹' },
+  { name: '💀 Death Troll', hp: 7, emoji: '💀' },
+  { name: '👑 Troll King', hp: 10, emoji: '👑' },
+];
+
+const RANDOM_EVENTS = [
+  { type: 'bonus', text: '🎁 Bonus! +50 Points', points: 50 },
+  { type: 'combo', text: '🔥 Combo x2!', multiplier: 2 },
+  { type: 'shield', text: '🛡️ Free Shield!', shield: true },
+  { type: 'skip', text: '⏭️ Skip Next Level!', skip: true },
+];
+
 const SOUNDS = {
   click: () => Vibration.vibrate(50),
   success: () => Vibration.vibrate([0, 100, 50, 100]),
@@ -248,6 +280,50 @@ function MainMenuScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.menuButtonSmallText}>🎨 Themes</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuButtonsRow}>
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#e94560' }]}
+            onPress={() => navigation.navigate('PowerUps')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>⚡ Power-ups</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#3498db' }]}
+            onPress={() => navigation.navigate('Skins')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>🎭 Skins</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#e74c3c' }]}
+            onPress={() => navigation.navigate('BossRush')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>👹 Boss Rush</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuButtonsRow}>
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#1abc9c' }]}
+            onPress={() => navigation.navigate('Tutorial')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>❓ How to Play</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#9b59b6' }]}
+            onPress={() => navigation.navigate('Statistics')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>📊 Stats</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -1255,6 +1331,310 @@ function ThemeScreen({ navigation }) {
   );
 }
 
+function PowerUpsScreen({ navigation }) {
+  const { addScore, score, setPowerUp, powerUps } = useGame();
+  const [coins, setCoins] = useState(0);
+
+  const handleBuy = (powerup) => {
+    if (coins >= powerup.cost) {
+      setCoins(c => c - powerup.cost);
+      setPowerUp(powerup.id);
+      Alert.alert('✅ Purchased!', `${powerup.name} activated!`);
+    } else {
+      Alert.alert('❌ Not enough coins!', `Need ${powerup.cost - coins} more coins`);
+    }
+  };
+
+  return (
+    <View style={styles.powerupsContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.powerupsTitle}>⚡ POWER-UPS</Text>
+      <Text style={styles.coinsDisplay}>🪙 Coins: {coins}</Text>
+
+      <View style={styles.powerupsList}>
+        {POWERUPS.map((p) => (
+          <TouchableOpacity
+            key={p.id}
+            style={styles.powerupCard}
+            onPress={() => handleBuy(p)}
+          >
+            <Text style={styles.powerupIcon}>{p.name}</Text>
+            <Text style={styles.powerupDesc}>{p.desc}</Text>
+            <Text style={styles.powerupCost}>🪙 {p.cost}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function SkinsScreen({ navigation }) {
+  const { score, currentSkin, setCurrentSkin, unlockSkin } = useGame();
+  const [showUnlockAnim, setShowUnlockAnim] = useState(false);
+
+  const handleSelect = (skin) => {
+    if (score >= skin.unlockAt || skin.id === 'default') {
+      setCurrentSkin(skin.id);
+      unlockSkin(skin.id);
+    } else {
+      Alert.alert('🔒 Locked!', `Need ${skin.unlockAt} points to unlock`);
+    }
+  };
+
+  return (
+    <View style={styles.skinsContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.skinsTitle}>🎭 CHARACTERS</Text>
+      <Text style={styles.skinsScore}>Your Score: {score}</Text>
+
+      <View style={styles.skinsGrid}>
+        {SKINS.map((skin) => {
+          const unlocked = score >= skin.unlockAt || skin.id === 'default';
+          return (
+            <TouchableOpacity
+              key={skin.id}
+              style={[
+                styles.skinCard,
+                currentSkin === skin.id && styles.skinCardActive,
+                !unlocked && styles.skinCardLocked
+              ]}
+              onPress={() => handleSelect(skin)}
+            >
+              <Text style={styles.skinEmoji}>{skin.emoji}</Text>
+              <Text style={[styles.skinName, !unlocked && styles.skinNameLocked]}>
+                {skin.name}
+              </Text>
+              {!unlocked && (
+                <Text style={styles.skinUnlock}>🔒 {skin.unlockAt}</Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function BossRushScreen({ navigation }) {
+  const { addScore, score, setCompletedLevel } = useGame();
+  const [bossIndex, setBossIndex] = useState(0);
+  const [bossHp, setBossHp] = useState(0);
+  const [playerHp, setPlayerHp] = useState(3);
+  const [gameOver, setGameOver] = useState(false);
+  const [victory, setVictory] = useState(false);
+
+  useEffect(() => {
+    setBossHp(BOSSES[0].hp);
+  }, []);
+
+  const handleAttack = () => {
+    SOUNDS.combo();
+    const newHp = bossHp - 1;
+    setBossHp(newHp);
+    if (newHp <= 0) {
+      if (bossIndex >= BOSSES.length - 1) {
+        setVictory(true);
+        addScore(1000);
+        Alert.alert('🏆 BOSS RUSH COMPLETE!', '+1000 Points!', [
+          { text: 'Claim', onPress: () => navigation.replace('MainMenu') }
+        ]);
+      } else {
+        const nextBoss = bossIndex + 1;
+        setBossIndex(nextBoss);
+        setBossHp(BOSSES[nextBoss].hp);
+        Alert.alert('🎉 Boss Defeated!', `Next: ${BOSSES[nextBoss].name}`);
+      }
+    }
+  };
+
+  const handleFail = () => {
+    SOUNDS.fail();
+    setPlayerHp(h => h - 1);
+    if (playerHp <= 1) {
+      setGameOver(true);
+    }
+  };
+
+  if (gameOver) {
+    return (
+      <View style={styles.gameOverContainer}>
+        <StatusBar style="light" />
+        <ParticleBackground />
+        <Text style={styles.gameOverText}>💀 DEFEATED</Text>
+        <Text style={styles.scoreDisplay}>Bosses Beaten: {bossIndex}</Text>
+        <TouchableOpacity style={styles.tryAgainButton} onPress={() => navigation.replace('MainMenu')}>
+          <Text style={styles.tryAgainText}>Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const boss = BOSSES[bossIndex];
+
+  return (
+    <View style={styles.bossRushContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.bossRushTitle}>👹 BOSS RUSH</Text>
+      <Text style={styles.bossRushProgress}>{bossIndex + 1}/{BOSSES.length}</Text>
+
+      <View style={styles.bossDisplay}>
+        <Text style={styles.bossRushEmoji}>{boss.emoji}</Text>
+        <Text style={styles.bossRushName}>{boss.name}</Text>
+        <View style={styles.bossRushHpBar}>
+          <View style={[styles.bossRushHpFill, { width: `${(bossHp / boss.hp) * 100}%` }]} />
+        </View>
+        <Text style={styles.bossRushHpText}>{bossHp}/{boss.hp}</Text>
+      </View>
+
+      <Text style={styles.playerHealth}>❤️ Your HP: {playerHp}/3</Text>
+
+      <View style={styles.bossRushButtons}>
+        <TouchableOpacity style={styles.attackButtonLarge} onPress={handleAttack}>
+          <Text style={styles.attackButtonTextLarge}>⚔️ ATTACK</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.failButtonLarge} onPress={handleFail}>
+          <Text style={styles.failButtonTextLarge}>❌ TRAP</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function TutorialScreen({ navigation }) {
+  const [step, setStep] = useState(0);
+
+  const tutorialSteps = [
+    { title: '🎮 Welcome!', content: 'Troll Game is all about outsmarting the trolls! Find the correct answers, avoid traps, and become the ultimate Troll Master!', emoji: '🎭' },
+    { title: '🎯 Gameplay', content: 'Each level has a puzzle. Look for hidden clues, think outside the box, and don\'t trust everything you see!', emoji: '🧠' },
+    { title: '💎 Scoring', content: 'Earn points by completing levels. Build combos by winning consecutively to multiply your score up to 5x!', emoji: '⭐' },
+    { title: '🏆 Modes', content: 'Play Story Mode (10 levels), Time Attack (speed), Endless Mode (unlimited), or Daily Challenges!', emoji: '🎮' },
+    { title: '🛡️ Power-ups', content: 'Use coins to buy power-ups like Shield, Time Bonus, Double Points, or Level Skip!', emoji: '⚡' },
+    { title: '🎭 Skins', content: 'Unlock new character skins by earning points. The more you play, the more you unlock!', emoji: '👑' },
+  ];
+
+  const nextStep = () => {
+    if (step < tutorialSteps.length - 1) {
+      setStep(s => s + 1);
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const current = tutorialSteps[step];
+
+  return (
+    <View style={styles.tutorialContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <View style={styles.tutorialProgress}>
+        {tutorialSteps.map((_, i) => (
+          <View key={i} style={[styles.tutorialDot, i === step && styles.tutorialDotActive]} />
+        ))}
+      </View>
+
+      <Text style={styles.tutorialEmoji}>{current.emoji}</Text>
+      <Text style={styles.tutorialTitle}>{current.title}</Text>
+      <Text style={styles.tutorialContent}>{current.content}</Text>
+
+      <TouchableOpacity style={styles.nextButton} onPress={nextStep}>
+        <Text style={styles.nextButtonText}>
+          {step === tutorialSteps.length - 1 ? '✅ Done!' : 'Next →'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function StatisticsScreen({ navigation }) {
+  const { score, highScore, maxCombo, completedLevels, totalPlays, totalTime } = useGame();
+
+  return (
+    <View style={styles.statsContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.statsTitle}>📊 STATISTICS</Text>
+
+      <View style={styles.statsCard}>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Total Plays</Text>
+          <Text style={styles.statValue}>{totalPlays || 0}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Play Time</Text>
+          <Text style={styles.statValue}>{totalTime ? `${Math.floor(totalTime/60)}m` : '0m'}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>High Score</Text>
+          <Text style={styles.statValue}>{highScore}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Best Combo</Text>
+          <Text style={styles.statValue}>{maxCombo}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Levels Beaten</Text>
+          <Text style={styles.statValue}>{completedLevels.length}</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function RandomEventScreen({ navigation }) {
+  const { addScore } = useGame();
+  const [event, setEvent] = useState(null);
+
+  useEffect(() => {
+    const randomEvent = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+    setEvent(randomEvent);
+  }, []);
+
+  const handleClaim = () => {
+    if (event.type === 'bonus') {
+      addScore(event.points);
+    } else if (event.type === 'combo') {
+      // Apply multiplier effect
+    }
+    navigation.goBack();
+  };
+
+  if (!event) return null;
+
+  return (
+    <View style={styles.randomEventContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.randomEventEmoji}>🎁</Text>
+      <Text style={styles.randomEventText}>{event.text}</Text>
+
+      <TouchableOpacity style={styles.claimButton} onPress={handleClaim}>
+        <Text style={styles.claimButtonText}>Claim! 🎉</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function AchievementsScreen({ navigation }) {
   const { unlockedAchievements, score, maxCombo, completedLevels } = useGame();
 
@@ -1452,6 +1832,12 @@ export default function App() {
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [unlockedAchievements, setUnlockedAchievements] = useState([]);
   const [currentTheme, setCurrentTheme] = useState('dark');
+  const [currentSkin, setCurrentSkin] = useState('default');
+  const [unlockedSkins, setUnlockedSkins] = useState(['default']);
+  const [powerUps, setPowerUps] = useState(null);
+  const [coins, setCoins] = useState(0);
+  const [totalPlays, setTotalPlays] = useState(0);
+  const [totalTime, setTotalTime] = useState(0);
 
   const addScore = (points) => {
     const finalPoints = Math.floor(points * multiplier);
@@ -1534,7 +1920,17 @@ export default function App() {
       unlockedAchievements,
       currentTheme,
       setCurrentTheme,
-      unlockAchievement
+      unlockAchievement,
+      currentSkin,
+      setCurrentSkin,
+      unlockedSkins,
+      unlockSkin: (id) => setUnlockedSkins(prev => prev.includes(id) ? prev : [...prev, id]),
+      powerUps,
+      setPowerUp: (id) => setPowerUps(id),
+      coins,
+      setCoins,
+      totalPlays,
+      totalTime
     }}>
       <NavigationContainer>
         <Stack.Navigator 
@@ -1565,6 +1961,12 @@ export default function App() {
           <Stack.Screen name="DailyChallenge" component={DailyChallengeScreen} />
           <Stack.Screen name="EndlessMode" component={EndlessModeScreen} />
           <Stack.Screen name="Theme" component={ThemeScreen} />
+          <Stack.Screen name="PowerUps" component={PowerUpsScreen} />
+          <Stack.Screen name="Skins" component={SkinsScreen} />
+          <Stack.Screen name="BossRush" component={BossRushScreen} />
+          <Stack.Screen name="Tutorial" component={TutorialScreen} />
+          <Stack.Screen name="Statistics" component={StatisticsScreen} />
+          <Stack.Screen name="RandomEvent" component={RandomEventScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </GameContext.Provider>
@@ -2771,5 +3173,279 @@ const styles = StyleSheet.create({
   },
   themePreview: {
     fontSize: 30,
+  },
+  powerupsContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  powerupsTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#f1c40f',
+    marginBottom: 10,
+  },
+  coinsDisplay: {
+    fontSize: 24,
+    color: '#f39c12',
+    marginBottom: 30,
+  },
+  powerupsList: {
+    width: '100%',
+    gap: 15,
+  },
+  powerupCard: {
+    backgroundColor: '#16213e',
+    padding: 20,
+    borderRadius: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  powerupIcon: {
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  powerupDesc: {
+    fontSize: 14,
+    color: '#eaeaea',
+    flex: 1,
+    marginLeft: 10,
+  },
+  powerupCost: {
+    fontSize: 16,
+    color: '#f39c12',
+    fontWeight: 'bold',
+  },
+  skinsContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  skinsTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#9b59b6',
+    marginBottom: 10,
+  },
+  skinsScore: {
+    fontSize: 20,
+    color: '#2ecc71',
+    marginBottom: 30,
+  },
+  skinsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 15,
+  },
+  skinCard: {
+    width: 90,
+    height: 110,
+    backgroundColor: '#16213e',
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#34495e',
+  },
+  skinCardActive: {
+    borderColor: '#f1c40f',
+    backgroundColor: '#2c3e50',
+  },
+  skinCardLocked: {
+    opacity: 0.5,
+  },
+  skinEmoji: {
+    fontSize: 40,
+    marginBottom: 5,
+  },
+  skinName: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  skinNameLocked: {
+    color: '#7f8c8d',
+  },
+  skinUnlock: {
+    fontSize: 10,
+    color: '#f39c12',
+  },
+  bossRushContainer: {
+    flex: 1,
+    backgroundColor: '#0a0a15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  bossRushTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+    marginBottom: 10,
+  },
+  bossRushProgress: {
+    fontSize: 20,
+    color: '#f1c40f',
+    marginBottom: 30,
+  },
+  bossDisplay: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  bossRushEmoji: {
+    fontSize: 80,
+    marginBottom: 10,
+  },
+  bossRushName: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  bossRushHpBar: {
+    width: 200,
+    height: 20,
+    backgroundColor: '#2c3e50',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  bossRushHpFill: {
+    height: '100%',
+    backgroundColor: '#e74c3c',
+  },
+  bossRushHpText: {
+    color: '#e74c3c',
+    marginTop: 5,
+    fontWeight: 'bold',
+  },
+  playerHealth: {
+    fontSize: 24,
+    color: '#2ecc71',
+    marginBottom: 30,
+  },
+  bossRushButtons: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  attackButtonLarge: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 25,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  attackButtonTextLarge: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  failButtonLarge: {
+    backgroundColor: '#f39c12',
+    paddingVertical: 25,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  failButtonTextLarge: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  tutorialContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+  },
+  tutorialProgress: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 40,
+  },
+  tutorialDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#34495e',
+  },
+  tutorialDotActive: {
+    backgroundColor: '#f1c40f',
+  },
+  tutorialEmoji: {
+    fontSize: 60,
+    marginBottom: 20,
+  },
+  tutorialTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#f1c40f',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  tutorialContent: {
+    fontSize: 18,
+    color: '#eaeaea',
+    textAlign: 'center',
+    lineHeight: 28,
+    marginBottom: 40,
+  },
+  nextButton: {
+    backgroundColor: '#2ecc71',
+    paddingVertical: 18,
+    paddingHorizontal: 50,
+    borderRadius: 25,
+  },
+  nextButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  statsContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  statsTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#3498db',
+    marginBottom: 30,
+  },
+  randomEventContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  randomEventEmoji: {
+    fontSize: 80,
+    marginBottom: 30,
+  },
+  randomEventText: {
+    fontSize: 28,
+    color: '#f1c40f',
+    fontWeight: 'bold',
+    marginBottom: 40,
+    textAlign: 'center',
+  },
+  claimButton: {
+    backgroundColor: '#2ecc71',
+    paddingVertical: 25,
+    paddingHorizontal: 60,
+    borderRadius: 30,
+  },
+  claimButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
 });
