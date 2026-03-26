@@ -19,9 +19,15 @@ const ACHIEVEMENTS = [
   { id: 'daily_champion', name: 'Daily Champion', desc: 'Complete Daily Challenge', icon: '📅' },
   { id: 'survivor', name: 'Survivor', desc: 'Complete Endless Mode', icon: '♾️' },
   { id: 'theme_explorer', name: 'Theme Explorer', desc: 'Try all themes', icon: '🎨' },
+  { id: 'boss_slayer', name: 'Boss Slayer', desc: 'Complete Boss Rush', icon: '⚔️' },
+  { id: 'collector', name: 'Collector', desc: 'Unlock all skins', icon: '🏆' },
+  { id: 'dedicated', name: 'Dedicated', desc: 'Play 50 times', icon: '💪' },
+  { id: 'rich', name: 'Rich', desc: 'Collect 1000 coins', icon: '💰' },
 ];
 
-const THEMES = {
+const GAME_VERSION = '2.0.0';
+
+const LEVELS_PREVIEW = {
   dark: { bg: '#1a1a2e', primary: '#f1c40f', secondary: '#e94560' },
   light: { bg: '#f5f5f5', primary: '#3498db', secondary: '#e74c3c' },
   neon: { bg: '#000000', primary: '#00ff00', secondary: '#ff00ff' },
@@ -389,6 +395,16 @@ function MainMenuScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.menuButtonSmallText}>📤 Share</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuButtonsRow}>
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#95a5a6' }]}
+            onPress={() => navigation.navigate('About')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>ℹ️ About</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -1869,6 +1885,105 @@ function ShareScoreScreen({ navigation }) {
   );
 }
 
+function ScorePopup({ points }) {
+  const translateY = useRef(new Animated.Value(-50)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(translateY, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
+
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(translateY, { toValue: -100, duration: 500, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+      ]).start();
+    }, 1000);
+  }, []);
+
+  return (
+    <Animated.View style={[styles.scorePopup, { transform: [{ translateY }], opacity }]}>
+      <Text style={styles.scorePopupText}>+{points}</Text>
+    </Animated.View>
+  );
+}
+
+function AboutScreen({ navigation }) {
+  return (
+    <View style={styles.aboutContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.aboutLogo}>🎭</Text>
+      <Text style={styles.aboutTitle}>TROLL GAME</Text>
+      <Text style={styles.aboutVersion}>Version {GAME_VERSION}</Text>
+      
+      <View style={styles.aboutCard}>
+        <Text style={styles.aboutDesc}>
+          A fun puzzle game where you have to outsmart the trolls!
+        </Text>
+        <Text style={styles.aboutFeatures}>
+          • 10 Story Levels{'\n'}
+          • Time Attack{'\n'}
+          • Endless Mode{'\n'}
+          • Boss Rush{'\n'}
+          • Daily Challenges{'\n'}
+          • And much more!
+        </Text>
+      </View>
+
+      <Text style={styles.aboutCopyright}>Made with ❤️</Text>
+      <Text style={styles.aboutCredit}>Created by Bhedanikhil</Text>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function LevelCompleteScreen({ navigation, route }) {
+  const { points, level, nextLevel } = route.params || { points: 100, level: 1, nextLevel: 2 };
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+  }, []);
+
+  return (
+    <View style={styles.levelCompleteContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Animated.View style={{ opacity: fadeAnim }}>
+        <Text style={styles.levelCompleteEmoji}>🎉</Text>
+        <Text style={styles.levelCompleteTitle}>Level {level} Complete!</Text>
+        <Text style={styles.levelCompleteScore}>+{points} Points</Text>
+        
+        <View style={styles.levelCompleteStats}>
+          <Text style={styles.levelCompleteNext}>Next: Level {nextLevel}</Text>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.nextLevelButton} 
+          onPress={() => navigation.replace(`Level${nextLevel}`)}
+        >
+          <Text style={styles.nextLevelButtonText}>Continue →</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.menuButton}
+          onPress={() => navigation.replace('LevelSelect')}
+        >
+          <Text style={styles.menuButtonText}>📋 Levels</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+}
+
 function AchievementsScreen({ navigation }) {
   const { unlockedAchievements, score, maxCombo, completedLevels } = useGame();
 
@@ -2208,6 +2323,8 @@ export default function App() {
           <Stack.Screen name="QuickPlay" component={QuickPlayScreen} />
           <Stack.Screen name="LevelPreview" component={LevelPreviewScreen} />
           <Stack.Screen name="ShareScore" component={ShareScoreScreen} />
+          <Stack.Screen name="About" component={AboutScreen} />
+          <Stack.Screen name="LevelComplete" component={LevelCompleteScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </GameContext.Provider>
@@ -3928,5 +4045,121 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  scorePopup: {
+    position: 'absolute',
+    top: '40%',
+    alignSelf: 'center',
+    backgroundColor: '#f1c40f',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+    zIndex: 1000,
+  },
+  scorePopupText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#1a1a2e',
+  },
+  aboutContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  aboutLogo: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
+  aboutTitle: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#f1c40f',
+    marginBottom: 10,
+  },
+  aboutVersion: {
+    fontSize: 18,
+    color: '#9b59b6',
+    marginBottom: 30,
+  },
+  aboutCard: {
+    backgroundColor: '#16213e',
+    padding: 25,
+    borderRadius: 20,
+    width: '85%',
+    marginBottom: 30,
+  },
+  aboutDesc: {
+    fontSize: 16,
+    color: '#eaeaea',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  aboutFeatures: {
+    fontSize: 14,
+    color: '#2ecc71',
+    lineHeight: 24,
+  },
+  aboutCopyright: {
+    fontSize: 16,
+    color: '#e94560',
+    marginBottom: 10,
+  },
+  aboutCredit: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginBottom: 30,
+  },
+  levelCompleteContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  levelCompleteEmoji: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
+  levelCompleteTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#2ecc71',
+    marginBottom: 10,
+  },
+  levelCompleteScore: {
+    fontSize: 28,
+    color: '#f1c40f',
+    marginBottom: 30,
+  },
+  levelCompleteStats: {
+    marginBottom: 30,
+  },
+  levelCompleteNext: {
+    fontSize: 18,
+    color: '#3498db',
+  },
+  nextLevelButton: {
+    backgroundColor: '#2ecc71',
+    paddingVertical: 18,
+    paddingHorizontal: 50,
+    borderRadius: 25,
+    marginBottom: 15,
+  },
+  nextLevelButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  menuButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 20,
+  },
+  menuButtonText: {
+    color: '#fff',
+    fontSize: 18,
   },
 });
