@@ -2,12 +2,28 @@ import React, { useState, useEffect, useRef, createContext, useContext } from 'r
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StyleSheet, Text, View, TouchableOpacity, TouchableWithoutFeedback, Alert, Dimensions, Animated, Easing, Image } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TouchableWithoutFeedback, Alert, Dimensions, Animated, Easing, Image, TextInput, Switch, Vibration } from 'react-native';
 
 const Stack = createNativeStackNavigator();
 const { width, height } = Dimensions.get('window');
 
 const GameContext = createContext();
+
+const ACHIEVEMENTS = [
+  { id: 'first_win', name: 'First Victory', desc: 'Complete any level', icon: '🎉' },
+  { id: 'troll_master', name: 'Troll Master', desc: 'Complete all 8 levels', icon: '👑' },
+  { id: 'speed_demon', name: 'Speed Demon', desc: 'Complete Time Attack', icon: '⚡' },
+  { id: 'combo_king', name: 'Combo King', desc: 'Get 10x combo', icon: '🔥' },
+  { id: 'perfectionist', name: 'Perfectionist', desc: 'Score 1000+ points', icon: '💯' },
+  { id: 'lucky_finder', name: 'Lucky Finder', desc: 'Find all secret spots', icon: '🍀' },
+];
+
+const SOUNDS = {
+  click: () => Vibration.vibrate(50),
+  success: () => Vibration.vibrate([0, 100, 50, 100]),
+  fail: () => Vibration.vibrate([0, 200, 100, 200]),
+  combo: () => Vibration.vibrate(30),
+};
 
 function useGame() {
   return useContext(GameContext);
@@ -136,7 +152,6 @@ function MainMenuScreen({ navigation }) {
   }, []);
 
   const handleStart = async () => {
-
     navigation.navigate('LevelSelect');
   };
 
@@ -160,12 +175,38 @@ function MainMenuScreen({ navigation }) {
           </PulseAnimation>
         </TouchableOpacity>
 
+        <View style={styles.menuButtonsRow}>
+          <TouchableOpacity 
+            style={styles.menuButtonSmall}
+            onPress={() => navigation.navigate('TimeAttack')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>⚡ Time Attack</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuButtonSmall}
+            onPress={() => navigation.navigate('Settings')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>⚙️ Settings</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity 
           style={styles.leaderboardButton}
           onPress={() => navigation.navigate('Leaderboard')}
           activeOpacity={0.8}
         >
-          <Text style={styles.leaderboardText}>🏆 Leaderboard</Text>
+          <Text style={styles.leaderboardText}>🏆 Stats</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.leaderboardButton}
+          onPress={() => navigation.navigate('Achievements')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.leaderboardText}>🏅 Achievements</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -184,7 +225,7 @@ function LevelSelectScreen({ navigation }) {
       <Text style={styles.totalScore}>Total Score: {score}</Text>
       
       <View style={styles.levelsGrid}>
-        {[1, 2, 3, 4, 5].map((level) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((level) => (
           <TouchableOpacity
             key={level}
             style={[
@@ -248,7 +289,7 @@ function Level1Screen({ navigation }) {
 
   const handleFakeButton = async () => {
     setShake(true);
-
+    SOUNDS.fail();
     setTimeout(() => {
       navigation.replace('GameOver');
     }, 500);
@@ -523,7 +564,7 @@ function Level5Screen({ navigation }) {
 
   const handleWin = async () => {
     if (!canClick) return;
-
+    SOUNDS.success();
     addScore(300);
     Alert.alert(
       '🏆 ULTIMATE TROLL MASTER!',
@@ -572,6 +613,354 @@ function Level5Screen({ navigation }) {
           Too early = Game Over! 😈
         </Text>
       )}
+    </View>
+  );
+}
+
+function Level6Screen({ navigation }) {
+  const { addScore, setCompletedLevel } = useGame();
+  const [showHint, setShowHint] = useState(false);
+
+  useEffect(() => {
+    setCompletedLevel(6);
+  }, []);
+
+  const handleTap = (btnIndex) => {
+    SOUNDS.fail();
+    navigation.replace('GameOver');
+  };
+
+  const handleSecretTap = () => {
+    SOUNDS.success();
+    addScore(200);
+    Alert.alert(
+      '🎯 Hidden Found!',
+      'You found the secret! +200 Points',
+      [{ text: 'Next Level', onPress: () => navigation.replace('Level7') }]
+    );
+  };
+
+  return (
+    <View style={styles.level6Container}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      <ComboDisplay />
+      <ScoreDisplay />
+      
+      <Text style={styles.level6Title}>🔍 Level 6</Text>
+      <Text style={styles.level6Subtitle}>Find the real button!</Text>
+
+      <View style={styles.buttonMaze}>
+        {[...Array(9)].map((_, i) => (
+          <TouchableOpacity
+            key={i}
+            style={styles.fakeButton2}
+            onPress={() => handleTap(i)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.fakeButton2Text}>FAKE</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <TouchableOpacity 
+        style={styles.realButton}
+        onPress={handleSecretTap}
+        activeOpacity={0.9}
+      >
+        <Text style={styles.realButtonText}>NEXT LEVEL</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.hintButton} onPress={() => setShowHint(true)}>
+        <Text style={styles.hintButtonText}>? Hint</Text>
+      </TouchableOpacity>
+
+      {showHint && (
+        <View style={styles.hintPopup}>
+          <Text style={styles.hintPopupText}>Not this one! 🤔</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function Level7Screen({ navigation }) {
+  const { addScore, setCompletedLevel } = useGame();
+  const [password, setPassword] = useState('');
+  const [attempts, setAttempts] = useState(0);
+
+  useEffect(() => {
+    setCompletedLevel(7);
+  }, []);
+
+  const handleSubmit = () => {
+    if (password.toLowerCase() === 'troll') {
+      SOUNDS.success();
+      addScore(250);
+      Alert.alert(
+        '🔓 Password Correct!',
+        'You cracked the code! +250 Points',
+        [{ text: 'Next Level', onPress: () => navigation.replace('Level8') }]
+      );
+    } else {
+      setAttempts(prev => prev + 1);
+      setPassword('');
+      SOUNDS.fail();
+      if (attempts >= 2) {
+        navigation.replace('GameOver');
+      } else {
+        Alert.alert('❌ Wrong!', `${2 - attempts} attempts left...`);
+      }
+    }
+  };
+
+  return (
+    <View style={styles.level7Container}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      <ComboDisplay />
+      <ScoreDisplay />
+      
+      <Text style={styles.level7Title}>🔐 Level 7</Text>
+      <Text style={styles.level7Subtitle}>Enter the password:</Text>
+      <Text style={styles.passwordHint}>Hint: What do we call the game? 😏</Text>
+
+      <TextInput
+        style={styles.passwordInput}
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Enter password..."
+        placeholderTextColor="#7f8c8d"
+        secureTextEntry
+        autoCapitalize="none"
+      />
+
+      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+        <Text style={styles.submitButtonText}>SUBMIT</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function Level8Screen({ navigation }) {
+  const { addScore, setCompletedLevel, score } = useGame();
+  const [health, setHealth] = useState(3);
+  const [bossHealth, setBossHealth] = useState(5);
+  const [bossPhase, setBossPhase] = useState(0);
+
+  useEffect(() => {
+    setCompletedLevel(8);
+  }, []);
+
+  const handleAttack = () => {
+    SOUNDS.combo();
+    setBossHealth(prev => prev - 1);
+    if (bossHealth <= 1) {
+      SOUNDS.success();
+      addScore(500);
+      const totalScore = score + 500;
+      Alert.alert(
+        '🏆 BOSS DEFEATED!',
+        `You beat the Troll King! +500 Points\nTotal: ${totalScore}`,
+        [{ text: 'Victory!', onPress: () => navigation.replace('MainMenu') }]
+      );
+    }
+  };
+
+  const handleTrap = () => {
+    SOUNDS.fail();
+    setHealth(prev => prev - 1);
+    if (health <= 1) {
+      navigation.replace('GameOver');
+    }
+  };
+
+  const bossEmojis = ['😈', '👹', '💀', '👻', '👽'];
+
+  return (
+    <View style={styles.level8Container}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      <ComboDisplay />
+      <ScoreDisplay />
+      
+      <Text style={styles.level8Title}>👹 BOSS LEVEL</Text>
+      
+      <View style={styles.bossContainer}>
+        <Text style={styles.bossEmoji}>{bossEmojis[bossPhase]}</Text>
+        <View style={styles.bossHealthBar}>
+          <View style={[styles.bossHealthFill, { width: `${(bossHealth / 5) * 100}%` }]} />
+        </View>
+        <Text style={styles.bossHealthText}>{bossHealth}/5</Text>
+      </View>
+
+      <View style={styles.playerStats}>
+        <Text style={styles.healthText}>❤️ HP: {health}/3</Text>
+      </View>
+
+      <View style={styles.bossButtons}>
+        <TouchableOpacity style={styles.attackButton} onPress={handleAttack}>
+          <Text style={styles.attackButtonText}>⚔️ ATTACK</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.trapButton} onPress={handleTrap}>
+          <Text style={styles.trapButtonText}>🎯 TRAP</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.bossHint}>Find the pattern! 😈</Text>
+    </View>
+  );
+}
+
+function TimeAttackScreen({ navigation }) {
+  const { addScore, resetScore, resetCombo } = useGame();
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [level, setLevel] = useState(1);
+  const [score, setLevelScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setGameOver(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleCompleteLevel = () => {
+    const points = level * 50;
+    setLevelScore(s => s + points);
+    addScore(points);
+    SOUNDS.success();
+    if (level >= 5) {
+      addScore(200);
+      Alert.alert(
+        '🏆 TIME ATTACK COMPLETE!',
+        'You completed all levels in time! +200 Bonus',
+        [{ text: 'Done', onPress: () => navigation.replace('MainMenu') }]
+      );
+    } else {
+      setLevel(l => l + 1);
+    }
+  };
+
+  const handleFail = () => {
+    SOUNDS.fail();
+    setTimeLeft(0);
+    setGameOver(true);
+  };
+
+  if (gameOver) {
+    return (
+      <View style={styles.gameOverContainer}>
+        <StatusBar style="light" />
+        <ParticleBackground />
+        <Text style={styles.gameOverText}>⏰ TIME'S UP!</Text>
+        <Text style={styles.scoreDisplay}>Score: {score}</Text>
+        <TouchableOpacity style={styles.tryAgainButton} onPress={() => navigation.replace('MainMenu')}>
+          <Text style={styles.tryAgainText}>Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.timeAttackContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <View style={styles.timerContainer}>
+        <Text style={styles.timerText}>⏱️ {timeLeft}s</Text>
+      </View>
+
+      <Text style={styles.timeAttackTitle}>⚡ TIME ATTACK</Text>
+      <Text style={styles.timeAttackLevel}>Level {level}/5</Text>
+
+      <View style={styles.timeAttackButtons}>
+        <TouchableOpacity style={styles.timeButton} onPress={handleCompleteLevel}>
+          <Text style={styles.timeButtonText}>✅ Complete</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.timeButton, styles.timeFailButton]} onPress={handleFail}>
+          <Text style={styles.timeButtonText}>❌ Fail</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function AchievementsScreen({ navigation }) {
+  const { unlockedAchievements, score, maxCombo, completedLevels } = useGame();
+
+  return (
+    <View style={styles.achievementsContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.achievementsTitle}>🏅 ACHIEVEMENTS</Text>
+      
+      <View style={styles.achievementsList}>
+        {ACHIEVEMENTS.map((ach) => {
+          const unlocked = unlockedAchievements.includes(ach.id);
+          return (
+            <View key={ach.id} style={[styles.achievementCard, !unlocked && styles.achievementLocked]}>
+              <Text style={styles.achievementIcon}>{unlocked ? ach.icon : '🔒'}</Text>
+              <View style={styles.achievementInfo}>
+                <Text style={[styles.achievementName, !unlocked && styles.achievementNameLocked]}>{ach.name}</Text>
+                <Text style={[styles.achievementDesc, !unlocked && styles.achievementDescLocked]}>{ach.desc}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function SettingsScreen({ navigation }) {
+  const { soundEnabled, setSoundEnabled, vibrationEnabled, setVibrationEnabled } = useGame();
+
+  return (
+    <View style={styles.settingsContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.settingsTitle}>⚙️ SETTINGS</Text>
+      
+      <View style={styles.settingsCard}>
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>🔊 Sound Effects</Text>
+          <Switch value={soundEnabled} onValueChange={setSoundEnabled} trackColor={{ true: '#2ecc71' }} />
+        </View>
+        
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>📳 Vibration</Text>
+          <Switch value={vibrationEnabled} onValueChange={setVibrationEnabled} trackColor={{ true: '#2ecc71' }} />
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.resetButton} onPress={() => {
+        Alert.alert('Reset Progress', 'Are you sure?', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Reset', style: 'destructive', onPress: () => navigation.replace('MainMenu') }
+        ]);
+      }}>
+        <Text style={styles.resetButtonText}>🔄 Reset Progress</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -669,14 +1058,14 @@ function LeaderboardScreen({ navigation }) {
         </View>
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>Levels Completed</Text>
-          <Text style={styles.statValue}>{completedLevels.length}/5</Text>
+          <Text style={styles.statValue}>{completedLevels.length}/8</Text>
         </View>
         <View style={[styles.statRow, { borderBottomWidth: 0 }]}>
           <Text style={styles.statLabel}>Rank</Text>
           <Text style={styles.statValue}>
-            {score >= 850 ? '🥇 TROLL MASTER' : 
-             score >= 500 ? '🥈 ADVANCED TROLL' :
-             score >= 200 ? '🥉 NOVICE TROLL' : '😇 INNOCENT'}
+            {score >= 1000 ? '🥇 TROLL MASTER' : 
+             score >= 600 ? '🥈 ADVANCED TROLL' :
+             score >= 300 ? '🥉 NOVICE TROLL' : '😇 INNOCENT'}
           </Text>
         </View>
       </View>
@@ -699,7 +1088,9 @@ export default function App() {
   const [streak, setStreak] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [highScore, setHighScore] = useState(0);
-  const soundManager = useRef(new SoundManager());
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  const [unlockedAchievements, setUnlockedAchievements] = useState([]);
 
   const addScore = (points) => {
     const finalPoints = Math.floor(points * multiplier);
@@ -708,9 +1099,14 @@ export default function App() {
       if (newScore > highScore) {
         setHighScore(newScore);
       }
+      if (newScore >= 1000) unlockAchievement('perfectionist');
       return newScore;
     });
-    setCombo(prev => prev + 1);
+    setCombo(prev => {
+      const newCombo = prev + 1;
+      if (newCombo >= 10) unlockAchievement('combo_king');
+      return newCombo;
+    });
     setStreak(prev => {
       const newStreak = prev + 1;
       if (newStreak > maxCombo) {
@@ -724,6 +1120,13 @@ export default function App() {
     }
   };
 
+  const unlockAchievement = (id) => {
+    if (!unlockedAchievements.includes(id)) {
+      setUnlockedAchievements(prev => [...prev, id]);
+      if (vibrationEnabled) Vibration.vibrate(100);
+    }
+  };
+
   const resetCombo = () => {
     setCombo(0);
     setMultiplier(1);
@@ -733,7 +1136,10 @@ export default function App() {
   const setCompletedLevel = (level) => {
     setCompletedLevels(prev => {
       if (!prev.includes(level)) {
-        return [...prev, level];
+        const newLevels = [...prev, level];
+        if (newLevels.length === 1) unlockAchievement('first_win');
+        if (newLevels.length === 8) unlockAchievement('troll_master');
+        return newLevels;
       }
       return prev;
     });
@@ -760,7 +1166,11 @@ export default function App() {
       maxCombo,
       highScore,
       resetCombo,
-      playSound: soundManager.current.playSound 
+      soundEnabled,
+      setSoundEnabled,
+      vibrationEnabled,
+      setVibrationEnabled,
+      unlockedAchievements
     }}>
       <NavigationContainer>
         <Stack.Navigator 
@@ -778,8 +1188,14 @@ export default function App() {
           <Stack.Screen name="Level3" component={Level3Screen} />
           <Stack.Screen name="Level4" component={Level4Screen} />
           <Stack.Screen name="Level5" component={Level5Screen} />
+          <Stack.Screen name="Level6" component={Level6Screen} />
+          <Stack.Screen name="Level7" component={Level7Screen} />
+          <Stack.Screen name="Level8" component={Level8Screen} />
           <Stack.Screen name="GameOver" component={GameOverScreen} />
           <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+          <Stack.Screen name="Achievements" component={AchievementsScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="TimeAttack" component={TimeAttackScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </GameContext.Provider>
@@ -1342,5 +1758,355 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     marginTop: 5,
+  },
+  level6Container: {
+    flex: 1,
+    backgroundColor: '#2c3e50',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  level6Title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#3498db',
+    marginBottom: 20,
+  },
+  level6Subtitle: {
+    fontSize: 18,
+    color: '#eaeaea',
+    marginBottom: 30,
+  },
+  buttonMaze: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 30,
+  },
+  fakeButton2: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#e74c3c',
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fakeButton2Text: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  realButton: {
+    width: 200,
+    height: 60,
+    backgroundColor: '#34495e',
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.3,
+  },
+  realButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  hintButton: {
+    marginTop: 20,
+    padding: 10,
+  },
+  hintButtonText: {
+    color: '#f39c12',
+    fontSize: 16,
+  },
+  hintPopup: {
+    marginTop: 10,
+    padding: 15,
+    backgroundColor: '#e74c3c',
+    borderRadius: 10,
+  },
+  hintPopupText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  level7Container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  level7Title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#9b59b6',
+    marginBottom: 20,
+  },
+  level7Subtitle: {
+    fontSize: 18,
+    color: '#eaeaea',
+    marginBottom: 10,
+  },
+  passwordHint: {
+    fontSize: 14,
+    color: '#f39c12',
+    marginBottom: 30,
+    fontStyle: 'italic',
+  },
+  passwordInput: {
+    width: '80%',
+    height: 50,
+    backgroundColor: '#2c3e50',
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#9b59b6',
+  },
+  submitButton: {
+    backgroundColor: '#9b59b6',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  level8Container: {
+    flex: 1,
+    backgroundColor: '#0a0a15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  level8Title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+    marginBottom: 30,
+    textShadowColor: '#e74c3c',
+    textShadowRadius: 15,
+  },
+  bossContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  bossEmoji: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
+  bossHealthBar: {
+    width: 200,
+    height: 20,
+    backgroundColor: '#2c3e50',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  bossHealthFill: {
+    height: '100%',
+    backgroundColor: '#e74c3c',
+  },
+  bossHealthText: {
+    color: '#e74c3c',
+    marginTop: 5,
+    fontWeight: 'bold',
+  },
+  playerStats: {
+    marginBottom: 30,
+  },
+  healthText: {
+    fontSize: 24,
+    color: '#2ecc71',
+    fontWeight: 'bold',
+  },
+  bossButtons: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  attackButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 20,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+  },
+  attackButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  trapButton: {
+    backgroundColor: '#f39c12',
+    paddingVertical: 20,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+  },
+  trapButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  bossHint: {
+    marginTop: 30,
+    color: '#7f8c8d',
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  timeAttackContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  timerContainer: {
+    position: 'absolute',
+    top: 50,
+  },
+  timerText: {
+    fontSize: 36,
+    color: '#e94560',
+    fontWeight: 'bold',
+  },
+  timeAttackTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#f1c40f',
+    marginBottom: 10,
+  },
+  timeAttackLevel: {
+    fontSize: 20,
+    color: '#2ecc71',
+    marginBottom: 40,
+  },
+  timeAttackButtons: {
+    gap: 20,
+  },
+  timeButton: {
+    backgroundColor: '#2ecc71',
+    paddingVertical: 20,
+    paddingHorizontal: 50,
+    borderRadius: 20,
+    width: 200,
+    alignItems: 'center',
+  },
+  timeFailButton: {
+    backgroundColor: '#e74c3c',
+  },
+  timeButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  achievementsContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  achievementsTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#f1c40f',
+    marginBottom: 30,
+  },
+  achievementsList: {
+    width: '100%',
+    gap: 15,
+  },
+  achievementCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#16213e',
+    padding: 15,
+    borderRadius: 15,
+    gap: 15,
+  },
+  achievementLocked: {
+    opacity: 0.5,
+  },
+  achievementIcon: {
+    fontSize: 30,
+  },
+  achievementInfo: {
+    flex: 1,
+  },
+  achievementName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2ecc71',
+  },
+  achievementNameLocked: {
+    color: '#7f8c8d',
+  },
+  achievementDesc: {
+    fontSize: 14,
+    color: '#eaeaea',
+  },
+  achievementDescLocked: {
+    color: '#7f8c8d',
+  },
+  settingsContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  settingsTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#3498db',
+    marginBottom: 40,
+  },
+  settingsCard: {
+    backgroundColor: '#16213e',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    marginBottom: 30,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2c3e50',
+  },
+  settingLabel: {
+    fontSize: 18,
+    color: '#eaeaea',
+  },
+  resetButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    marginBottom: 30,
+  },
+  resetButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  menuButtonsRow: {
+    flexDirection: 'row',
+    gap: 15,
+    marginBottom: 15,
+  },
+  menuButtonSmall: {
+    backgroundColor: '#3498db',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+  menuButtonSmallText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
