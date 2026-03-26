@@ -66,6 +66,29 @@ const RANDOM_EVENTS = [
   { type: 'skip', text: '⏭️ Skip Next Level!', skip: true },
 ];
 
+const LEVELS_PREVIEW = {
+  1: { name: 'The Trap', difficulty: 'Easy', tip: 'Think outside the box!' },
+  2: { name: 'Green Light', difficulty: 'Easy', tip: 'Break the rules!' },
+  3: { name: 'Catch Me', difficulty: 'Medium', tip: 'Be patient!' },
+  4: { name: 'Brain Test', difficulty: 'Medium', tip: 'Trust your gut!' },
+  5: { name: 'Timing is Key', difficulty: 'Hard', tip: 'Wait for it...' },
+  6: { name: 'Hidden Maze', difficulty: 'Hard', tip: 'Look everywhere!' },
+  7: { name: 'Password', difficulty: 'Medium', tip: 'Think like a troll!' },
+  8: { name: 'Boss Battle', difficulty: 'Expert', tip: 'Find the pattern!' },
+  9: { name: 'Diamond Hunt', difficulty: 'Hard', tip: 'The golden one!' },
+  10: { name: 'Memory Test', difficulty: 'Expert', tip: 'Watch carefully!' },
+};
+
+const DAILY_REWARDS = [
+  { day: 1, coins: 50, prize: '🪙 50 Coins' },
+  { day: 2, coins: 75, prize: '🪙 75 Coins' },
+  { day: 3, coins: 100, prize: '🪙 100 Coins' },
+  { day: 4, coins: 125, prize: '🪙 125 Coins' },
+  { day: 5, coins: 150, prize: '🪙 150 Coins' },
+  { day: 6, coins: 200, prize: '🪙 200 Coins' },
+  { day: 7, coins: 500, prize: '🎁 Big Prize!' },
+];
+
 const SOUNDS = {
   click: () => Vibration.vibrate(50),
   success: () => Vibration.vibrate([0, 100, 50, 100]),
@@ -188,8 +211,10 @@ function ShakeAnimation({ children, trigger }) {
 }
 
 function MainMenuScreen({ navigation }) {
-  const { playSound } = useGame();
+  const { playSound, currentSkin, coins } = useGame();
   const [menuAnim] = useState(new Animated.Value(0));
+
+  const currentEmoji = SKINS.find(s => s.id === currentSkin)?.emoji || '😈';
 
   useEffect(() => {
     Animated.timing(menuAnim, {
@@ -211,7 +236,11 @@ function MainMenuScreen({ navigation }) {
       <Animated.View style={[styles.menuContent, { opacity: menuAnim, transform: [{ scale: menuAnim }] }]}>
         <Text style={styles.title}>🎭 TROLL GAME</Text>
         <Text style={styles.subtitle}>Can you beat the troll?</Text>
-        <Text style={styles.emojiDisplay}>😈</Text>
+        <Text style={styles.emojiDisplay}>{currentEmoji}</Text>
+        
+        <View style={styles.coinDisplay}>
+          <Text style={styles.coinText}>🪙 {coins}</Text>
+        </View>
         
         <TouchableOpacity 
           style={styles.startButton}
@@ -324,6 +353,42 @@ function MainMenuScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.menuButtonSmallText}>📊 Stats</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuButtonsRow}>
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#e67e22' }]}
+            onPress={() => navigation.navigate('DailyBonus')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>🎁 Daily</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#2ecc71' }]}
+            onPress={() => navigation.navigate('QuickPlay')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>⚡ Quick</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuButtonsRow}>
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#3498db' }]}
+            onPress={() => navigation.navigate('LevelPreview')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>📋 Levels</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#e74c3c' }]}
+            onPress={() => navigation.navigate('ShareScore')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>📤 Share</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -1635,6 +1700,175 @@ function RandomEventScreen({ navigation }) {
   );
 }
 
+function DailyBonusScreen({ navigation }) {
+  const { coins, setCoins, lastLoginDay, setLastLoginDay } = useGame();
+  const [todayClaimed, setTodayClaimed] = useState(false);
+
+  const handleClaim = (dayIndex) => {
+    const reward = DAILY_REWARDS[dayIndex];
+    setCoins(c => c + reward.coins);
+    setLastLoginDay(dayIndex + 1);
+    setTodayClaimed(true);
+    SOUNDS.success();
+    Alert.alert('🎉 Reward Claimed!', `${reward.prize}\n+${reward.coins} coins!`);
+  };
+
+  return (
+    <View style={styles.dailyBonusContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.dailyBonusTitle}>📅 DAILY REWARDS</Text>
+      <Text style={styles.dailyBonusSubtitle}>Login 7 days in a row!</Text>
+
+      <View style={styles.dailyRewardsGrid}>
+        {DAILY_REWARDS.map((reward, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.dailyRewardCard,
+              index < (lastLoginDay || 0) && styles.dailyRewardClaimed,
+              index === (lastLoginDay || 0) && !todayClaimed && styles.dailyRewardCurrent
+            ]}
+            onPress={() => index === (lastLoginDay || 0) && !todayClaimed && handleClaim(index)}
+            disabled={index !== (lastLoginDay || 0) || todayClaimed}
+          >
+            <Text style={styles.dailyDayText}>Day {reward.day}</Text>
+            <Text style={styles.dailyRewardText}>{reward.prize}</Text>
+            {index < (lastLoginDay || 0) && <Text style={styles.checkMark}>✓</Text>}
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function QuickPlayScreen({ navigation }) {
+  const { addScore, setCompletedLevel } = useGame();
+  const [score, setQuickScore] = useState(0);
+  const [level, setQuickLevel] = useState(1);
+
+  const handleWin = () => {
+    SOUNDS.success();
+    const points = level * 30;
+    setQuickScore(s => s + points);
+    addScore(points);
+    setQuickLevel(l => l + 1);
+    if (level >= 3) {
+      addScore(100);
+      Alert.alert('🏆 Quick Play Complete!', '+100 Bonus!', [
+        { text: 'Done', onPress: () => navigation.replace('MainMenu') }
+      ]);
+    }
+  };
+
+  const handleLose = () => {
+    SOUNDS.fail();
+    Alert.alert('💀 Game Over', `Score: ${score}`, [
+      { text: 'Try Again', onPress: () => { setQuickScore(0); setQuickLevel(1); } },
+      { text: 'Exit', onPress: () => navigation.replace('MainMenu') }
+    ]);
+  };
+
+  return (
+    <View style={styles.quickPlayContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.quickPlayTitle}>⚡ QUICK PLAY</Text>
+      <Text style={styles.quickPlayLevel}>Level {level}/3</Text>
+      <Text style={styles.quickPlayScore}>Score: {score}</Text>
+
+      <View style={styles.quickPlayButtons}>
+        <TouchableOpacity style={styles.quickWinButton} onPress={handleWin}>
+          <Text style={styles.quickWinText}>✅ WIN</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickLoseButton} onPress={handleLose}>
+          <Text style={styles.quickLoseText}>❌ LOSE</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.quickPlayHint}>Tap win to continue, lose to exit</Text>
+    </View>
+  );
+}
+
+function LevelPreviewScreen({ navigation }) {
+  const { completedLevels } = useGame();
+
+  return (
+    <View style={styles.levelPreviewContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.levelPreviewTitle}>📋 LEVEL PREVIEW</Text>
+
+      <View style={styles.levelPreviewList}>
+        {Object.entries(LEVELS_PREVIEW).map(([num, info]) => {
+          const completed = completedLevels.includes(parseInt(num));
+          return (
+            <View key={num} style={[styles.levelPreviewCard, completed && styles.levelPreviewCompleted]}>
+              <View style={styles.levelPreviewHeader}>
+                <Text style={styles.levelPreviewNum}>Level {num}</Text>
+                <Text style={styles.levelPreviewName}>{info.name}</Text>
+              </View>
+              <Text style={styles.levelPreviewDiff}>{info.difficulty}</Text>
+              <Text style={styles.levelPreviewTip}>💡 {info.tip}</Text>
+              {completed && <Text style={styles.levelPreviewCheck}>✓ Completed</Text>}
+            </View>
+          );
+        })}
+      </View>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function ShareScoreScreen({ navigation }) {
+  const { score, highScore, maxCombo, completedLevels } = useGame();
+
+  const shareText = `🎭 I'm playing Troll Game!\n\n⭐ Score: ${score}\n🏆 High Score: ${highScore}\n🔥 Max Combo: ${maxCombo}\n🎯 Levels: ${completedLevels.length}/10\n\nCan you beat me? 👀`;
+
+  const handleShare = () => {
+    Alert.alert('📤 Share', `Share this score:\n\n${shareText}`, [
+      { text: 'Copy', onPress: () => Alert.alert('✅ Copied!', 'Score copied to clipboard') },
+      { text: 'Close', style: 'cancel' }
+    ]);
+  };
+
+  return (
+    <View style={styles.shareContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.shareTitle}>📤 SHARE SCORE</Text>
+      
+      <View style={styles.shareCard}>
+        <Text style={styles.shareEmoji}>🎭</Text>
+        <Text style={styles.shareScore}>Score: {score}</Text>
+        <Text style={styles.shareHighScore}>Best: {highScore}</Text>
+        <Text style={styles.shareCombo}>Max Combo: {maxCombo}</Text>
+        <Text style={styles.shareLevels}>Levels: {completedLevels.length}/10</Text>
+      </View>
+
+      <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+        <Text style={styles.shareButtonText}>📋 Copy Score</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function AchievementsScreen({ navigation }) {
   const { unlockedAchievements, score, maxCombo, completedLevels } = useGame();
 
@@ -1838,6 +2072,7 @@ export default function App() {
   const [coins, setCoins] = useState(0);
   const [totalPlays, setTotalPlays] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
+  const [lastLoginDay, setLastLoginDay] = useState(0);
 
   const addScore = (points) => {
     const finalPoints = Math.floor(points * multiplier);
@@ -1930,7 +2165,9 @@ export default function App() {
       coins,
       setCoins,
       totalPlays,
-      totalTime
+      totalTime,
+      lastLoginDay,
+      setLastLoginDay
     }}>
       <NavigationContainer>
         <Stack.Navigator 
@@ -1967,6 +2204,10 @@ export default function App() {
           <Stack.Screen name="Tutorial" component={TutorialScreen} />
           <Stack.Screen name="Statistics" component={StatisticsScreen} />
           <Stack.Screen name="RandomEvent" component={RandomEventScreen} />
+          <Stack.Screen name="DailyBonus" component={DailyBonusScreen} />
+          <Stack.Screen name="QuickPlay" component={QuickPlayScreen} />
+          <Stack.Screen name="LevelPreview" component={LevelPreviewScreen} />
+          <Stack.Screen name="ShareScore" component={ShareScoreScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </GameContext.Provider>
@@ -2006,6 +2247,20 @@ const styles = StyleSheet.create({
   emojiDisplay: {
     fontSize: 80,
     marginVertical: 30,
+  },
+  coinDisplay: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: '#f39c12',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  coinText: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   subtitle: {
     fontSize: 18,
@@ -3446,6 +3701,232 @@ const styles = StyleSheet.create({
   claimButtonText: {
     color: '#fff',
     fontSize: 24,
+    fontWeight: 'bold',
+  },
+  dailyBonusContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  dailyBonusTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#f1c40f',
+    marginBottom: 10,
+  },
+  dailyBonusSubtitle: {
+    fontSize: 18,
+    color: '#eaeaea',
+    marginBottom: 30,
+  },
+  dailyRewardsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  dailyRewardCard: {
+    width: 100,
+    height: 90,
+    backgroundColor: '#16213e',
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#34495e',
+  },
+  dailyRewardClaimed: {
+    backgroundColor: '#2ecc71',
+    borderColor: '#27ae60',
+  },
+  dailyRewardCurrent: {
+    borderColor: '#f1c40f',
+    backgroundColor: '#2c3e50',
+  },
+  dailyDayText: {
+    fontSize: 14,
+    color: '#9b59b6',
+    fontWeight: 'bold',
+  },
+  dailyRewardText: {
+    fontSize: 14,
+    color: '#fff',
+    marginTop: 5,
+  },
+  checkMark: {
+    fontSize: 20,
+    color: '#fff',
+    marginTop: 5,
+  },
+  quickPlayContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  quickPlayTitle: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#2ecc71',
+    marginBottom: 20,
+  },
+  quickPlayLevel: {
+    fontSize: 24,
+    color: '#f1c40f',
+    marginBottom: 10,
+  },
+  quickPlayScore: {
+    fontSize: 30,
+    color: '#fff',
+    marginBottom: 40,
+  },
+  quickPlayButtons: {
+    flexDirection: 'row',
+    gap: 30,
+    marginBottom: 30,
+  },
+  quickWinButton: {
+    backgroundColor: '#2ecc71',
+    paddingVertical: 25,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  quickWinText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  quickLoseButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 25,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  quickLoseText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  quickPlayHint: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    fontStyle: 'italic',
+  },
+  levelPreviewContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingHorizontal: 20,
+  },
+  levelPreviewTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#3498db',
+    marginBottom: 20,
+  },
+  levelPreviewList: {
+    width: '100%',
+    gap: 10,
+  },
+  levelPreviewCard: {
+    backgroundColor: '#16213e',
+    padding: 15,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#e94560',
+  },
+  levelPreviewCompleted: {
+    borderLeftColor: '#2ecc71',
+    backgroundColor: '#1e3a2f',
+  },
+  levelPreviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  levelPreviewNum: {
+    fontSize: 16,
+    color: '#f1c40f',
+    fontWeight: 'bold',
+  },
+  levelPreviewName: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  levelPreviewDiff: {
+    fontSize: 12,
+    color: '#9b59b6',
+    marginTop: 5,
+  },
+  levelPreviewTip: {
+    fontSize: 12,
+    color: '#7f8c8d',
+    marginTop: 5,
+    fontStyle: 'italic',
+  },
+  levelPreviewCheck: {
+    fontSize: 12,
+    color: '#2ecc71',
+    marginTop: 5,
+  },
+  shareContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  shareTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#3498db',
+    marginBottom: 30,
+  },
+  shareCard: {
+    backgroundColor: '#16213e',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: '80%',
+    marginBottom: 30,
+  },
+  shareEmoji: {
+    fontSize: 60,
+    marginBottom: 15,
+  },
+  shareScore: {
+    fontSize: 28,
+    color: '#f1c40f',
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  shareHighScore: {
+    fontSize: 18,
+    color: '#eaeaea',
+    marginBottom: 5,
+  },
+  shareCombo: {
+    fontSize: 16,
+    color: '#e94560',
+    marginBottom: 5,
+  },
+  shareLevels: {
+    fontSize: 16,
+    color: '#2ecc71',
+  },
+  shareButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  shareButtonText: {
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });
