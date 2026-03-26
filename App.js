@@ -11,11 +11,27 @@ const GameContext = createContext();
 
 const ACHIEVEMENTS = [
   { id: 'first_win', name: 'First Victory', desc: 'Complete any level', icon: '🎉' },
-  { id: 'troll_master', name: 'Troll Master', desc: 'Complete all 8 levels', icon: '👑' },
+  { id: 'troll_master', name: 'Troll Master', desc: 'Complete all 10 levels', icon: '👑' },
   { id: 'speed_demon', name: 'Speed Demon', desc: 'Complete Time Attack', icon: '⚡' },
   { id: 'combo_king', name: 'Combo King', desc: 'Get 10x combo', icon: '🔥' },
-  { id: 'perfectionist', name: 'Perfectionist', desc: 'Score 1000+ points', icon: '💯' },
+  { id: 'perfectionist', name: 'Perfectionist', desc: 'Score 1500+ points', icon: '💯' },
   { id: 'lucky_finder', name: 'Lucky Finder', desc: 'Find all secret spots', icon: '🍀' },
+  { id: 'daily_champion', name: 'Daily Champion', desc: 'Complete Daily Challenge', icon: '📅' },
+  { id: 'survivor', name: 'Survivor', desc: 'Complete Endless Mode', icon: '♾️' },
+  { id: 'theme_explorer', name: 'Theme Explorer', desc: 'Try all themes', icon: '🎨' },
+];
+
+const THEMES = {
+  dark: { bg: '#1a1a2e', primary: '#f1c40f', secondary: '#e94560' },
+  light: { bg: '#f5f5f5', primary: '#3498db', secondary: '#e74c3c' },
+  neon: { bg: '#000000', primary: '#00ff00', secondary: '#ff00ff' },
+  ocean: { bg: '#1a3a5c', primary: '#00d4ff', secondary: '#ff6b6b' },
+};
+
+const DAILY_CHALLENGES = [
+  { title: 'Speed Run', desc: 'Complete 3 levels in 30s', type: 'speed' },
+  { title: 'No Mistakes', desc: 'Complete without failing', type: 'perfect' },
+  { title: 'Combo Master', desc: 'Get 5x combo', type: 'combo' },
 ];
 
 const SOUNDS = {
@@ -208,6 +224,32 @@ function MainMenuScreen({ navigation }) {
         >
           <Text style={styles.leaderboardText}>🏅 Achievements</Text>
         </TouchableOpacity>
+
+        <View style={styles.menuButtonsRow}>
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#9b59b6' }]}
+            onPress={() => navigation.navigate('DailyChallenge')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>📅 Daily</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#2ecc71' }]}
+            onPress={() => navigation.navigate('EndlessMode')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>♾️ Endless</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.menuButtonSmall, { backgroundColor: '#f39c12' }]}
+            onPress={() => navigation.navigate('Theme')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuButtonSmallText}>🎨 Themes</Text>
+          </TouchableOpacity>
+        </View>
       </Animated.View>
     </View>
   );
@@ -225,7 +267,7 @@ function LevelSelectScreen({ navigation }) {
       <Text style={styles.totalScore}>Total Score: {score}</Text>
       
       <View style={styles.levelsGrid}>
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((level) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
           <TouchableOpacity
             key={level}
             style={[
@@ -813,6 +855,153 @@ function Level8Screen({ navigation }) {
   );
 }
 
+function Level9Screen({ navigation }) {
+  const { addScore, setCompletedLevel } = useGame();
+  const [tapCount, setTapCount] = useState(0);
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    setCompletedLevel(9);
+  }, []);
+
+  const handleTap = (index) => {
+    SOUNDS.click();
+    if (index === 2) {
+      SOUNDS.success();
+      addScore(300);
+      Alert.alert(
+        '🎯 Level Cleared!',
+        'You found the golden button! +300 Points',
+        [{ text: 'Next Level', onPress: () => navigation.replace('Level10') }]
+      );
+    } else {
+      setTapCount(prev => prev + 1);
+      if (tapCount >= 2) {
+        SOUNDS.fail();
+        navigation.replace('GameOver');
+      }
+    }
+  };
+
+  const handleHint = () => {
+    setRevealed(true);
+  };
+
+  return (
+    <View style={styles.level9Container}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      <ComboDisplay />
+      <ScoreDisplay />
+      
+      <Text style={styles.level9Title}>💎 Level 9</Text>
+      <Text style={styles.level9Subtitle}>Find the diamond among stones!</Text>
+      <Text style={styles.level9Hint}>Hint: {revealed ? 'Third button' : 'Tap to reveal (costs attempt)'}</Text>
+
+      <View style={styles.diamondButtons}>
+        {[0,1,2,3,4].map(i => (
+          <TouchableOpacity
+            key={i}
+            style={[styles.diamondButton, i === 2 && styles.diamondButtonGold]}
+            onPress={() => handleTap(i)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.diamondEmoji}>💎</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <TouchableOpacity style={styles.hintRevealButton} onPress={handleHint}>
+        <Text style={styles.hintRevealText}>💡 Get Hint</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.attemptText}>Attempts: {tapCount}/3</Text>
+    </View>
+  );
+}
+
+function Level10Screen({ navigation }) {
+  const { addScore, setCompletedLevel, score } = useGame();
+  const [sequence, setSequence] = useState([]);
+  const [playerSeq, setPlayerSeq] = useState([]);
+  const [gameState, setGameState] = useState('watch');
+
+  useEffect(() => {
+    setCompletedLevel(10);
+    const newSeq = [...Array(5)].map((_, i) => Math.floor(Math.random() * 4));
+    setSequence(newSeq);
+  }, []);
+
+  const handleColorPress = (colorIndex) => {
+    if (gameState !== 'play') return;
+    
+    const newPlayerSeq = [...playerSeq, colorIndex];
+    setPlayerSeq(newPlayerSeq);
+
+    if (newPlayerSeq[newPlayerSeq.length - 1] !== sequence[newPlayerSeq.length - 1]) {
+      SOUNDS.fail();
+      navigation.replace('GameOver');
+      return;
+    }
+
+    if (newPlayerSeq.length === sequence.length) {
+      SOUNDS.success();
+      addScore(400);
+      const totalScore = score + 400;
+      Alert.alert(
+        '🏆 FINAL VICTORY!',
+        `You completed ALL 10 levels!\n+400 Points\nTotal: ${totalScore}`,
+        [{ text: '🏅 View Stats', onPress: () => navigation.replace('Leaderboard') }]
+      );
+    }
+  };
+
+  const startPlay = () => {
+    setGameState('play');
+  };
+
+  const colors = ['🔴', '🔵', '🟢', '🟡'];
+
+  return (
+    <View style={styles.level10Container}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      <ComboDisplay />
+      <ScoreDisplay />
+      
+      <Text style={styles.level10Title}>🎮 FINAL LEVEL</Text>
+      <Text style={styles.level10Subtitle}>Memory Challenge!</Text>
+
+      {gameState === 'watch' ? (
+        <View>
+          <Text style={styles.watchText}>Watch the sequence...</Text>
+          <View style={styles.sequencePreview}>
+            {sequence.map((s, i) => (
+              <Text key={i} style={styles.sequenceItem}>{colors[s]}</Text>
+            ))}
+          </View>
+          <TouchableOpacity style={styles.startPlayButton} onPress={startPlay}>
+            <Text style={styles.startPlayText}>▶️ YOUR TURN</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.colorGrid}>
+          {colors.map((c, i) => (
+            <TouchableOpacity
+              key={i}
+              style={styles.colorButton}
+              onPress={() => handleColorPress(i)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.colorButtonText}>{c}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function TimeAttackScreen({ navigation }) {
   const { addScore, resetScore, resetCombo } = useGame();
   const [timeLeft, setTimeLeft] = useState(60);
@@ -881,7 +1070,7 @@ function TimeAttackScreen({ navigation }) {
       </View>
 
       <Text style={styles.timeAttackTitle}>⚡ TIME ATTACK</Text>
-      <Text style={styles.timeAttackLevel}>Level {level}/5</Text>
+      <Text style={styles.timeAttackLevel}>Level {level}/10</Text>
 
       <View style={styles.timeAttackButtons}>
         <TouchableOpacity style={styles.timeButton} onPress={handleCompleteLevel}>
@@ -891,6 +1080,177 @@ function TimeAttackScreen({ navigation }) {
           <Text style={styles.timeButtonText}>❌ Fail</Text>
         </TouchableOpacity>
       </View>
+    </View>
+  );
+}
+
+function DailyChallengeScreen({ navigation }) {
+  const { addScore } = useGame();
+  const [challengeIndex, setChallengeIndex] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [completed, setCompleted] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          Alert.alert('⏰ Time Up!', 'Daily Challenge incomplete', [
+            { text: 'Home', onPress: () => navigation.replace('MainMenu') }
+          ]);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleComplete = () => {
+    SOUNDS.success();
+    setCompleted(prev => prev + 1);
+    if (challengeIndex < 2) {
+      setChallengeIndex(i => i + 1);
+      setTimeLeft(30);
+    } else {
+      addScore(500);
+      Alert.alert('🎉 Daily Complete!', '+500 Points!', [
+        { text: 'Claim', onPress: () => navigation.replace('MainMenu') }
+      ]);
+    }
+  };
+
+  const challenge = DAILY_CHALLENGES[challengeIndex];
+
+  return (
+    <View style={styles.dailyChallengeContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <View style={styles.dailyHeader}>
+        <Text style={styles.dailyTitle}>📅 DAILY CHALLENGE</Text>
+        <Text style={styles.dailyTimer}>⏱️ {timeLeft}s</Text>
+      </View>
+
+      <View style={styles.dailyProgress}>
+        <Text style={styles.dailyProgressText}>Day {new Date().getDate()}</Text>
+        <View style={styles.progressDots}>
+          {[0,1,2].map(i => (
+            <View key={i} style={[styles.dot, i <= completed && styles.dotCompleted]} />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.challengeCard}>
+        <Text style={styles.challengeTitle}>{challenge.title}</Text>
+        <Text style={styles.challengeDesc}>{challenge.desc}</Text>
+        <Text style={styles.challengeNumber}>{challengeIndex + 1}/3</Text>
+      </View>
+
+      <TouchableOpacity style={styles.completeChallengeButton} onPress={handleComplete}>
+        <Text style={styles.completeChallengeText}>✓ COMPLETE</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function EndlessModeScreen({ navigation }) {
+  const { addScore, resetCombo } = useGame();
+  const [level, setLevel] = useState(1);
+  const [health, setHealth] = useState(3);
+  const [score, setLevelScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+
+  const handlePass = () => {
+    SOUNDS.success();
+    const points = level * 25;
+    setLevelScore(s => s + points);
+    addScore(points);
+    setLevel(l => l + 1);
+  };
+
+  const handleFail = () => {
+    SOUNDS.fail();
+    setHealth(h => h - 1);
+    if (health <= 1) {
+      setGameOver(true);
+    }
+  };
+
+  if (gameOver) {
+    return (
+      <View style={styles.gameOverContainer}>
+        <StatusBar style="light" />
+        <ParticleBackground />
+        <Text style={styles.gameOverText}>♾️ GAME OVER</Text>
+        <Text style={styles.scoreDisplay}>Score: {score}</Text>
+        <Text style={styles.highScoreText}>Level Reached: {level}</Text>
+        <TouchableOpacity style={styles.tryAgainButton} onPress={() => navigation.replace('MainMenu')}>
+          <Text style={styles.tryAgainText}>Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.endlessContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <View style={styles.endlessStats}>
+        <Text style={styles.endlessLevel}>Level {level}</Text>
+        <Text style={styles.endlessHealth}>❤️ {health}/3</Text>
+      </View>
+
+      <Text style={styles.endlessTitle}>♾️ ENDLESS MODE</Text>
+      <Text style={styles.endlessScore}>Score: {score}</Text>
+
+      <View style={styles.endlessButtons}>
+        <TouchableOpacity style={styles.passButton} onPress={handlePass}>
+          <Text style={styles.passButtonText}>✓ Pass</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.failButton} onPress={handleFail}>
+          <Text style={styles.failButtonText}>✗ Fail</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function ThemeScreen({ navigation }) {
+  const { currentTheme, setCurrentTheme, unlockAchievement } = useGame();
+
+  const handleThemeSelect = (themeKey) => {
+    setCurrentTheme(themeKey);
+    unlockAchievement('theme_explorer');
+    Alert.alert('🎨 Theme Changed!', `${themeKey.charAt(0).toUpperCase() + themeKey.slice(1)} theme applied`);
+  };
+
+  return (
+    <View style={styles.themeContainer}>
+      <StatusBar style="light" />
+      <ParticleBackground />
+      
+      <Text style={styles.themeTitle}>🎨 THEMES</Text>
+
+      <View style={styles.themeGrid}>
+        {Object.keys(THEMES).map((key) => (
+          <TouchableOpacity
+            key={key}
+            style={[styles.themeCard, { backgroundColor: THEMES[key].bg }]}
+            onPress={() => handleThemeSelect(key)}
+          >
+            <Text style={[styles.themeName, { color: THEMES[key].primary }]}>
+              {key.charAt(0).toUpperCase() + key.slice(1)}
+            </Text>
+            <Text style={styles.themePreview}>🎨</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -1058,7 +1418,7 @@ function LeaderboardScreen({ navigation }) {
         </View>
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>Levels Completed</Text>
-          <Text style={styles.statValue}>{completedLevels.length}/8</Text>
+          <Text style={styles.statValue}>{completedLevels.length}/10</Text>
         </View>
         <View style={[styles.statRow, { borderBottomWidth: 0 }]}>
           <Text style={styles.statLabel}>Rank</Text>
@@ -1091,6 +1451,7 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [unlockedAchievements, setUnlockedAchievements] = useState([]);
+  const [currentTheme, setCurrentTheme] = useState('dark');
 
   const addScore = (points) => {
     const finalPoints = Math.floor(points * multiplier);
@@ -1138,7 +1499,7 @@ export default function App() {
       if (!prev.includes(level)) {
         const newLevels = [...prev, level];
         if (newLevels.length === 1) unlockAchievement('first_win');
-        if (newLevels.length === 8) unlockAchievement('troll_master');
+        if (newLevels.length === 10) unlockAchievement('troll_master');
         return newLevels;
       }
       return prev;
@@ -1170,7 +1531,10 @@ export default function App() {
       setSoundEnabled,
       vibrationEnabled,
       setVibrationEnabled,
-      unlockedAchievements
+      unlockedAchievements,
+      currentTheme,
+      setCurrentTheme,
+      unlockAchievement
     }}>
       <NavigationContainer>
         <Stack.Navigator 
@@ -1191,11 +1555,16 @@ export default function App() {
           <Stack.Screen name="Level6" component={Level6Screen} />
           <Stack.Screen name="Level7" component={Level7Screen} />
           <Stack.Screen name="Level8" component={Level8Screen} />
+          <Stack.Screen name="Level9" component={Level9Screen} />
+          <Stack.Screen name="Level10" component={Level10Screen} />
           <Stack.Screen name="GameOver" component={GameOverScreen} />
           <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
           <Stack.Screen name="Achievements" component={AchievementsScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="TimeAttack" component={TimeAttackScreen} />
+          <Stack.Screen name="DailyChallenge" component={DailyChallengeScreen} />
+          <Stack.Screen name="EndlessMode" component={EndlessModeScreen} />
+          <Stack.Screen name="Theme" component={ThemeScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </GameContext.Provider>
@@ -2108,5 +2477,299 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  level9Container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  level9Title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#9b59b6',
+    marginBottom: 20,
+  },
+  level9Subtitle: {
+    fontSize: 18,
+    color: '#eaeaea',
+    marginBottom: 20,
+  },
+  level9Hint: {
+    fontSize: 14,
+    color: '#f39c12',
+    marginBottom: 30,
+    fontStyle: 'italic',
+  },
+  diamondButtons: {
+    flexDirection: 'row',
+    gap: 15,
+    marginBottom: 30,
+  },
+  diamondButton: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#34495e',
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  diamondButtonGold: {
+    backgroundColor: '#f1c40f',
+  },
+  diamondEmoji: {
+    fontSize: 30,
+  },
+  hintRevealButton: {
+    padding: 10,
+    marginBottom: 20,
+  },
+  hintRevealText: {
+    color: '#f39c12',
+    fontSize: 16,
+  },
+  attemptText: {
+    color: '#e94560',
+    fontSize: 16,
+  },
+  level10Container: {
+    flex: 1,
+    backgroundColor: '#0a0a15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  level10Title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#00ff00',
+    marginBottom: 20,
+    textShadowColor: '#00ff00',
+    textShadowRadius: 15,
+  },
+  level10Subtitle: {
+    fontSize: 20,
+    color: '#eaeaea',
+    marginBottom: 40,
+  },
+  watchText: {
+    fontSize: 20,
+    color: '#f1c40f',
+    marginBottom: 20,
+  },
+  sequencePreview: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 30,
+  },
+  sequenceItem: {
+    fontSize: 40,
+  },
+  startPlayButton: {
+    backgroundColor: '#2ecc71',
+    paddingVertical: 20,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  startPlayText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
+    justifyContent: 'center',
+  },
+  colorButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#34495e',
+  },
+  colorButtonText: {
+    fontSize: 40,
+  },
+  dailyChallengeContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  dailyHeader: {
+    position: 'absolute',
+    top: 50,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  dailyTitle: {
+    fontSize: 24,
+    color: '#f1c40f',
+    fontWeight: 'bold',
+  },
+  dailyTimer: {
+    fontSize: 24,
+    color: '#e94560',
+    fontWeight: 'bold',
+  },
+  dailyProgress: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  dailyProgressText: {
+    fontSize: 18,
+    color: '#eaeaea',
+    marginBottom: 15,
+  },
+  progressDots: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  dot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#34495e',
+  },
+  dotCompleted: {
+    backgroundColor: '#2ecc71',
+  },
+  challengeCard: {
+    backgroundColor: '#16213e',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginBottom: 30,
+    width: '80%',
+  },
+  challengeTitle: {
+    fontSize: 24,
+    color: '#f1c40f',
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  challengeDesc: {
+    fontSize: 16,
+    color: '#eaeaea',
+    marginBottom: 10,
+  },
+  challengeNumber: {
+    fontSize: 14,
+    color: '#9b59b6',
+  },
+  completeChallengeButton: {
+    backgroundColor: '#2ecc71',
+    paddingVertical: 20,
+    paddingHorizontal: 50,
+    borderRadius: 30,
+  },
+  completeChallengeText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  endlessContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  endlessStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 30,
+    marginBottom: 30,
+  },
+  endlessLevel: {
+    fontSize: 24,
+    color: '#3498db',
+    fontWeight: 'bold',
+  },
+  endlessHealth: {
+    fontSize: 24,
+    color: '#e94560',
+    fontWeight: 'bold',
+  },
+  endlessTitle: {
+    fontSize: 40,
+    color: '#f1c40f',
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  endlessScore: {
+    fontSize: 20,
+    color: '#2ecc71',
+    marginBottom: 40,
+  },
+  endlessButtons: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  passButton: {
+    backgroundColor: '#2ecc71',
+    paddingVertical: 25,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  passButtonText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  failButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 25,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  failButtonText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  themeContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  themeTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#f1c40f',
+    marginBottom: 40,
+  },
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  themeCard: {
+    width: 120,
+    height: 120,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#34495e',
+  },
+  themeName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  themePreview: {
+    fontSize: 30,
   },
 });
